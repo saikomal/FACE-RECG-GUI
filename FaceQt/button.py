@@ -24,8 +24,9 @@ class Life2Coding(QDialog):
         self.pushButton.clicked.connect(self.loadClicked)
 
     def loadClicked(self):
-        name = 'komal'
-        self.loadImage('/home/klu/Desktop/FACE-GUI/FaceQt/knn_examples/train/'+name+'/img1.jpg')
+        mytext = self.textEdit.toPlainText()
+        mytext1 = self.textEdit_2.toPlainText()
+        print(mytext,mytext1)
 
     def loadImage(self,fname):
         self.image=cv2.imread(fname)

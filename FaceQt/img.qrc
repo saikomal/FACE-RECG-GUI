@@ -2,4 +2,7 @@
   <qresource prefix="newPrefix">
     <file>logo.png</file>
   </qresource>
+  <qresource prefix="newPrefix">
+    <file>klulogo3.png</file>
+  </qresource>
 </RCC>
