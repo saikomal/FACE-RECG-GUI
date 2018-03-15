@@ -1,10 +1,30 @@
-import sys
-import cv2
-from PyQt5.QtWidgets import QApplication, QDialog
-from PyQt5.uic import loadUi
-from PyQt5.QtCore import QTimer
-from PyQt5.QtGui import QImage
-from PyQt5.QtGui import QPixmap
+"""
+This is an example of using the k-nearest-neighbors(knn) algorithm for face recognition.
+
+When should I use this example?
+This example is useful when you whish to recognize a large set of known people,
+and make a prediction for an unkown person in a feasible computation time.
+
+Algorithm Description:
+The knn classifier is first trained on a set of labeled(known) faces, and can then predict the person
+in an unkown image by finding the k most similar faces(images with closet face-features under eucledian distance) in its training set,
+and performing a majority vote(possibly weighted) on their label.
+For example, if k=3, and the three closest face images to the given image in the training set are one image of Biden and two images of Obama,
+The result would be 'Obama'.
+*This implemententation uses a weighted vote, such that the votes of closer-neighbors are weighted more heavily.
+
+Usage: 
+-First, prepare a set of images of the known people you want to recognize.
+ Organize the images in a single directory with a sub-directory for each known person.
+-Then, call the 'train' function with the appropriate parameters.
+ make sure to pass in the 'model_save_path' if you want to re-use the model without having to re-train it.
+-After training the model, you can call 'predict' to recognize the person in an unknown image.
+$ 
+
+NOTE: This example requires scikit-learn to be installed! You can install it with pip:
+$ pip3 install scikit-learn
+"""
+
 from math import sqrt
 from sklearn import neighbors
 from os import listdir
@@ -14,14 +34,18 @@ from PIL import Image, ImageFont, ImageDraw, ImageEnhance
 import face_recognition
 from face_recognition import face_locations
 from face_recognition.cli import image_files_in_folder
+import cv2
 import sqlite3
 import time
+
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+c=sqlite3.connect("base.db")
 def train(train_dir, model_save_path = "", n_neighbors = None, knn_algo = 'ball_tree', verbose=False):
     """
     Trains a k-nearest neighbors classifier for face recognition.
 
     :param train_dir: directory that contains a sub-directory for each known person, with its name.
-$
+$ 
 
      (View in source code to see train_dir example tree structure)
 
@@ -69,7 +93,6 @@ $
         with open(model_save_path, 'wb') as f:
             pickle.dump(knn_clf, f)
     return knn_clf
-knn_clf = train("knn_examples/train")
 
 def predict(im, knn_clf = None, model_save_path ="", DIST_THRESH = .5):
     """
@@ -99,74 +122,58 @@ def predict(im, knn_clf = None, model_save_path ="", DIST_THRESH = .5):
     return [(pred, loc) if rec else ("N/A", loc) for pred, loc, rec in zip(knn_clf.predict(faces_encodings), X_faces_loc, is_recognized)]
 
 
-class Life2Coding(QDialog):
+knn_clf = train("knn_examples/train")
+
+video_capture = cv2.VideoCapture(0)
+
+# Initialize some variables
+face_locations1 = []
+face_encodings1 = []
+face_names = []
+process_this_frame = True
+
+while True:
+    # Grab a single frame of video
+    ret, frame = video_capture.read(0)
+    preds = predict(frame, knn_clf=knn_clf)
+    print(preds)
+    for i in range(len(preds)):
+        # print(preds[i][0])
+        sq = "insert into identity(Id) values('" + str(preds[i][0]) + "')"
+        face_names.append(preds[i][0])
+        c.execute(sq)
+    c.commit()
+    # Resize frame of video to 1/4 size for faster face recognition processing
+    small_frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
+
+    # Convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
+    rgb_small_frame = small_frame[:, :, ::-1]
+
+    process_this_frame = not process_this_frame
 
 
-    def __init__(self):
-        super(Life2Coding, self).__init__()
-        ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
-        c=sqlite3.connect("base.db")
-        loadUi('Attendence.ui', self)
-        self.capture = cv2.VideoCapture(0)
-        self.capture.set(cv2.CAP_PROP_FRAME_HEIGHT, 311)
-        self.capture.set(cv2.CAP_PROP_FRAME_WIDTH, 241)
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self.update_frame)
-        self.timer.start(5)
+    # Display the results
+    for (top, right, bottom, left), name in zip(face_locations1, face_names):
+        # Scale back up face locations since the frame we detected in was scaled to 1/4 size
+        top *= 4
+        right *= 4
+        bottom *= 4
+        left *= 4
 
-    def update_frame(self):
-        c=sqlite3.connect("base.db")
+        # Draw a box around the face
+        cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
 
-        face_names = []
-        faceCascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
-        ret, self.image = self.capture.read()
-        preds = predict(self.image, knn_clf=knn_clf)
-        print(preds)
-        for i in range(len(preds)):
-            sq = "insert into identity(Id) values('" + str(preds[i][0]) + "')"
-            face_names.append(preds[i][0])
-            c.execute(sq)
-        c.commit()
-        print(face_names)
-        gray = cv2.cvtColor(self.image, cv2.COLOR_BGR2GRAY)
-        #gray = frame
-        faces = faceCascade.detectMultiScale(
-            gray,
-            scaleFactor=1.2,
-            minNeighbors=5,
-            minSize=(30, 30)
+        # Draw a label with a name below the face
+        cv2.rectangle(frame, (left, bottom - 35), (right, bottom), (0, 0, 255), cv2.FILLED)
+        font = cv2.FONT_HERSHEY_DUPLEX
+        cv2.putText(frame, name, (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
 
-        )
+    # Display the resulting image
+    cv2.imshow('Video', frame)
 
-
-        for (x, y, w, h) in faces:
-            cv2.rectangle(self.image, (x, y), (x+w, y+h), (0, 255, 0), 2)
-        self.image = cv2.flip(self.image, 1)
-        self.displayImage(self.image, 1)
-
-    def stop_webcam(self):
-        self.timer.stop()
-
-    def displayImage(self, img, window=1):
-        qformat = QImage.Format_Indexed8
-        if len(img.shape) == 3:
-            if img.shape[2] == 4:
-                qformat = QImage.Format_RGBA8888
-            else:
-                qformat = QImage.Format_RGB888
-        outImage = QImage(img, img.shape[1], img.shape[0], img.strides[0], qformat)
-        outImage = outImage.rgbSwapped()
-
-
-
-        if window == 1:
-            self.imglabel.setPixmap(QPixmap.fromImage(outImage))
-            self.imglabel.setScaledContents(True)
-
-
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    window = Life2Coding()
-    window.setWindowTitle('Attendence')
-    window.show()
-sys.exit(app.exec_())
+    # Hit 'q' on the keyboard to quit!
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+# Release handle to the webcam
+video_capture.release()
+cv2.destroyAllWindows()
