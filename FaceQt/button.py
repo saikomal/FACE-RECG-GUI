@@ -29,7 +29,8 @@ class Life2Coding(QDialog):
 
     def loadImage(self,fname):
         self.image=cv2.imread(fname)
-        self.displayImage(self.image, 1)
+        self.label.setText("hola")
+        #self.displayImage(self.image, 1)
     def displayImage(self, img, window=1):
         qformat = QImage.Format_Indexed8
         if len(img.shape) == 3:

@@ -131,6 +131,10 @@ class Life2Coding(QDialog):
         print(face_names)
         if(len(face_names)!=0 and face_names[0]!='N/A'):
             self.loadImage('/home/klu/Desktop/FACE-GUI/FaceQt/knn_examples/train/'+face_names[0]+'/img1.jpg')
+            self.label_10.setText(face_names[0])
+            self.label_11.setText("150030711")
+            self.label_12.setText("CSE")
+            self.label_13.setText("9441884057")
 
         gray = cv2.cvtColor(self.image, cv2.COLOR_BGR2GRAY)
         #gramaheshy = frame
@@ -169,6 +173,7 @@ class Life2Coding(QDialog):
             self.label.setScaledContents(True)
 
     def displayImage(self, img, window=1):
+        #self.loadImage('logo.jpg')
         qformat = QImage.Format_Indexed8
         if len(img.shape) == 3:
             if img.shape[2] == 4:
