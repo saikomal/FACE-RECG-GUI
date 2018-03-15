@@ -145,6 +145,10 @@ class Life2Coding(QDialog):
             os.makedirs("/home/klu/Desktop/FACE-GUI/FaceQt/knn_examples/train/"+name)
             cv2.imwrite('/home/klu/Desktop/FACE-GUI/FaceQt/knn_examples/train/'+name+'/img'+str(count)+'.jpg',personface)
             count+=1
+            c1=sqlite3.connect("base1.db")
+            sql1="insert into identity1(name,mobile,purpose,concernedperson,department) values('"+str(name)+"','"+str(mobile)+"','"+str(purpose)+"','"+str(concernedperson)+"','"+str(department)+"')"
+            c1.execute(sql1)
+            c1.commit()
 
     def update_frame(self):
         t = time.localtime()
