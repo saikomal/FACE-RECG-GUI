@@ -121,6 +121,7 @@ class Life2Coding(QDialog):
         faceCascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
         ret, self.image = self.capture.read()
         preds = predict(self.image, knn_clf=knn_clf)
+
         print(preds)
         for i in range(len(preds)):
             sq = "insert into identity(Id) values('" + str(preds[i][0]) + "')"
@@ -128,8 +129,11 @@ class Life2Coding(QDialog):
             c.execute(sq)
         c.commit()
         print(face_names)
+        if(len(face_names)!=0 and face_names[0]!='N/A'):
+            self.loadImage('/home/klu/Desktop/FACE-GUI/FaceQt/knn_examples/train/'+face_names[0]+'/img1.jpg')
+
         gray = cv2.cvtColor(self.image, cv2.COLOR_BGR2GRAY)
-        #gray = frame
+        #gramaheshy = frame
         faces = faceCascade.detectMultiScale(
             gray,
             scaleFactor=1.2,
@@ -146,6 +150,23 @@ class Life2Coding(QDialog):
 
     def stop_webcam(self):
         self.timer.stop()
+
+    def loadImage(self,fname):
+        self.image1=cv2.imread(fname)
+        self.displayImage1(self.image1,1)
+
+    def displayImage1(self, img, window=1):
+        qformat = QImage.Format_Indexed8
+        if len(img.shape) == 3:
+            if img.shape[2] == 4:
+                qformat = QImage.Format_RGBA8888
+            else:
+                qformat = QImage.Format_RGB888
+        outImage = QImage(img, img.shape[1], img.shape[0], img.strides[0], qformat)
+        outImage = outImage.rgbSwapped()
+        if window == 1:
+            self.label.setPixmap(QPixmap.fromImage(outImage))
+            self.label.setScaledContents(True)
 
     def displayImage(self, img, window=1):
         qformat = QImage.Format_Indexed8
