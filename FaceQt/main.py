@@ -18,10 +18,24 @@ class Life2Coding(QDialog):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_frame)
         self.timer.start(5)
-        
+
 
     def update_frame(self):
+        faceCascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
         ret, self.image = self.capture.read()
+        gray = cv2.cvtColor(self.image, cv2.COLOR_BGR2GRAY)
+        #gray = frame
+        faces = faceCascade.detectMultiScale(
+            gray,
+            scaleFactor=1.2,
+            minNeighbors=5,
+            minSize=(30, 30)
+
+        )
+
+
+        for (x, y, w, h) in faces:
+            cv2.rectangle(self.image, (x, y), (x+w, y+h), (0, 255, 0), 2)
         self.image = cv2.flip(self.image, 1)
         self.displayImage(self.image, 1)
 
